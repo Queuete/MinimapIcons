@@ -58,28 +58,14 @@ namespace MinimapIcons
 
         public override void OnLoad()
         {
-            LoadConfig();
-            Graphics.InitImage("sprites.png");
-            Graphics.InitImage("Icons.png");
-            CanUseMultiThreading = true;
         }
 
         public override bool Initialise()
         {
+            Graphics.InitImage("sprites.png");
+            Graphics.InitImage("Icons.png");
+            CanUseMultiThreading = true;
             return true;
-        }
-
-        private void LoadConfig()
-        {
-            var readAllLines = File.ReadAllLines(ALERT_CONFIG);
-
-            foreach (var readAllLine in readAllLines)
-            {
-                if (readAllLine.StartsWith("#")) continue;
-                var s = readAllLine.Split(';');
-                var sz = s[2].Trim().Split(',');
-                modIcons[s[0]] = new Size2(int.Parse(sz[0]), int.Parse(sz[1]));
-            }
         }
 
         public override Job Tick()
