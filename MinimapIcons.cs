@@ -79,150 +79,164 @@ namespace MinimapIcons
 
         private void TickLogic()
         {
-            ingameStateIngameUi = GameController.Game.IngameState.IngameUi;
-
-            if (ingameStateIngameUi.Map.SmallMiniMap.IsVisibleLocal)
+            try
             {
-                var mapRect = ingameStateIngameUi.Map.SmallMiniMap.GetClientRectCache;
-                screentCenterCache = new Vector2(mapRect.X + mapRect.Width / 2, mapRect.Y + mapRect.Height / 2);
-                largeMap = false;
-            }
-            else if (ingameStateIngameUi.Map.LargeMap.IsVisibleLocal)
-            {
-                screentCenterCache = screenCenter;
-                largeMap = true;
-            }
+                ingameStateIngameUi = GameController.Game.IngameState.IngameUi;
 
-            k = camera.Width < 1024f ? 1120f : 1024f;
-            scale = k / camera.Height * camera.Width * 3f / 4f / mapWindow.LargeMapZoom;
+                if (ingameStateIngameUi.Map.SmallMiniMap.IsVisibleLocal)
+                {
+                    var mapRect = ingameStateIngameUi.Map.SmallMiniMap.GetClientRectCache;
+                    screentCenterCache = new Vector2(mapRect.X + mapRect.Width / 2, mapRect.Y + mapRect.Height / 2);
+                    largeMap = false;
+                }
+                else if (ingameStateIngameUi.Map.LargeMap.IsVisibleLocal)
+                {
+                    screentCenterCache = screenCenter;
+                    largeMap = true;
+                }
+
+                k = camera.Width < 1024f ? 1120f : 1024f;
+                scale = k / camera.Height * camera.Width * 3f / 4f / mapWindow.LargeMapZoom;
+            }
+            catch (Exception e)
+            {
+                DebugWindow.LogError($"MinimapIcons.TickLogic: {e.Message}");
+            }
         }
 
         public override void Render()
         {
-            if (!Settings.Enable.Value || !GameController.InGame || Settings.DrawOnlyOnLargeMap && !largeMap) return;
-
-            if (ingameStateIngameUi.AtlasPanel.IsVisibleLocal || ingameStateIngameUi.DelveWindow.IsVisibleLocal ||
-                ingameStateIngameUi.TreePanel.IsVisibleLocal)
-                return;
-
-            var playerPos = GameController.Player.GetComponent<Positioned>().GridPos;
-            var posZ = GameController.Player.GetComponent<Render>().Pos.Z;
-            var mapWindowLargeMapZoom = mapWindow.LargeMapZoom;
-
-            var baseIcons = GameController.EntityListWrapper.OnlyValidEntities
-                .SelectWhereF(x => x.GetHudComponent<BaseIcon>(), icon => icon != null).OrderByF(x => x.Priority)
-                .ToList();
-
-            foreach (var icon in baseIcons)
+            try
             {
-                if (icon.Entity.Type == EntityType.WorldItem)
-                    continue;
+                if (!Settings.Enable.Value || !GameController.InGame || Settings.DrawOnlyOnLargeMap && !largeMap) return;
 
-                if (!Settings.DrawMonsters && icon.Entity.Type == EntityType.Monster)
-                    continue;
+                if (ingameStateIngameUi.AtlasPanel.IsVisibleLocal || ingameStateIngameUi.DelveWindow.IsVisibleLocal ||
+                    ingameStateIngameUi.TreePanel.IsVisibleLocal)
+                    return;
 
-                if (icon.HasIngameIcon)
-                    continue;
+                var playerPos = GameController.Player.GetComponent<Positioned>().GridPos;
+                var posZ = GameController.Player.GetComponent<Render>().Pos.Z;
+                var mapWindowLargeMapZoom = mapWindow.LargeMapZoom;
 
-                if (!icon.Show())
-                    continue;
+                var baseIcons = GameController.EntityListWrapper.OnlyValidEntities
+                    .SelectWhereF(x => x.GetHudComponent<BaseIcon>(), icon => icon != null).OrderByF(x => x.Priority)
+                    .ToList();
 
-                var component = icon?.Entity?.GetComponent<Render>();
-                if (component == null) continue;
-                var iconZ = component.Pos.Z;
-                Vector2 position;
-
-                if (largeMap)
+                foreach (var icon in baseIcons)
                 {
-                    position = screentCenterCache + MapIcon.DeltaInWorldToMinimapDelta(
-                                   icon.GridPosition() - playerPos, diag, scale, (iconZ - posZ) / (9f / mapWindowLargeMapZoom));
-                }
-                else
-                {
-                    position = screentCenterCache +
-                               MapIcon.DeltaInWorldToMinimapDelta(icon.GridPosition() - playerPos, diag, 240f, (iconZ - posZ) / 20);
-                }
+                    if (icon.Entity.Type == EntityType.WorldItem)
+                        continue;
 
-                HudTexture iconValueMainTexture;
-                iconValueMainTexture = icon.MainTexture;
-                var size = iconValueMainTexture.Size;
-                var halfSize = size / 2f;
-                icon.DrawRect = new RectangleF(position.X - halfSize, position.Y - halfSize, size, size);
-                Graphics.DrawImage(iconValueMainTexture.FileName, icon.DrawRect, iconValueMainTexture.UV, iconValueMainTexture.Color);
+                    if (!Settings.DrawMonsters && icon.Entity.Type == EntityType.Monster)
+                        continue;
 
-                if (icon.Hidden())
-                {
-                    var s = icon.DrawRect.Width * 0.5f;
-                    icon.DrawRect.Inflate(-s, -s);
+                    if (icon.HasIngameIcon)
+                        continue;
 
-                    Graphics.DrawImage(icon.MainTexture.FileName, icon.DrawRect,
-                        SpriteHelper.GetUV(MapIconsIndex.LootFilterSmallCyanCircle), Color.White);
+                    if (!icon.Show())
+                        continue;
 
-                    icon.DrawRect.Inflate(s, s);
-                }
+                    var component = icon?.Entity?.GetComponent<Render>();
+                    if (component == null) continue;
+                    var iconZ = component.Pos.Z;
+                    Vector2 position;
 
-                if (!string.IsNullOrEmpty(icon.Text))
-                    Graphics.DrawText(icon.Text, position.Translate(0, Settings.ZForText), FontAlign.Center);
-            }
-
-            if (Settings.DrawNotValid)
-            {
-                for (var index = 0; index < GameController.EntityListWrapper.NotOnlyValidEntities.Count; index++)
-                {
-                    var entity = GameController.EntityListWrapper.NotOnlyValidEntities[index];
-                    if (entity.Type == EntityType.WorldItem) continue;
-                    var icon = entity.GetHudComponent<BaseIcon>();
-
-                    if (icon != null && !entity.IsValid && icon.Show())
+                    if (largeMap)
                     {
-                        if (icon.Entity.Type == EntityType.WorldItem)
-                            continue;
+                        position = screentCenterCache + MapIcon.DeltaInWorldToMinimapDelta(
+                                       icon.GridPosition() - playerPos, diag, scale, (iconZ - posZ) / (9f / mapWindowLargeMapZoom));
+                    }
+                    else
+                    {
+                        position = screentCenterCache +
+                                   MapIcon.DeltaInWorldToMinimapDelta(icon.GridPosition() - playerPos, diag, 240f, (iconZ - posZ) / 20);
+                    }
 
-                        if (!Settings.DrawMonsters && icon.Entity.Type == EntityType.Monster)
-                            continue;
+                    HudTexture iconValueMainTexture;
+                    iconValueMainTexture = icon.MainTexture;
+                    var size = iconValueMainTexture.Size;
+                    var halfSize = size / 2f;
+                    icon.DrawRect = new RectangleF(position.X - halfSize, position.Y - halfSize, size, size);
+                    Graphics.DrawImage(iconValueMainTexture.FileName, icon.DrawRect, iconValueMainTexture.UV, iconValueMainTexture.Color);
 
-                        if (icon.HasIngameIcon)
-                            continue;
+                    if (icon.Hidden())
+                    {
+                        var s = icon.DrawRect.Width * 0.5f;
+                        icon.DrawRect.Inflate(-s, -s);
 
-                        if (!icon.Show())
-                            continue;
+                        Graphics.DrawImage(icon.MainTexture.FileName, icon.DrawRect,
+                            SpriteHelper.GetUV(MapIconsIndex.LootFilterSmallCyanCircle), Color.White);
 
-                        var iconZ = icon.Entity.Pos.Z;
-                        Vector2 position;
+                        icon.DrawRect.Inflate(s, s);
+                    }
 
-                        if (largeMap)
+                    if (!string.IsNullOrEmpty(icon.Text))
+                        Graphics.DrawText(icon.Text, position.Translate(0, Settings.ZForText), FontAlign.Center);
+                }
+
+                if (Settings.DrawNotValid)
+                {
+                    for (var index = 0; index < GameController.EntityListWrapper.NotOnlyValidEntities.Count; index++)
+                    {
+                        var entity = GameController.EntityListWrapper.NotOnlyValidEntities[index];
+                        if (entity.Type == EntityType.WorldItem) continue;
+                        var icon = entity.GetHudComponent<BaseIcon>();
+
+                        if (icon != null && !entity.IsValid && icon.Show())
                         {
-                            position = screentCenterCache + MapIcon.DeltaInWorldToMinimapDelta(
-                                           icon.GridPosition() - playerPos, diag, scale, (iconZ - posZ) / (9f / mapWindowLargeMapZoom));
+                            if (icon.Entity.Type == EntityType.WorldItem)
+                                continue;
+
+                            if (!Settings.DrawMonsters && icon.Entity.Type == EntityType.Monster)
+                                continue;
+
+                            if (icon.HasIngameIcon)
+                                continue;
+
+                            if (!icon.Show())
+                                continue;
+
+                            var iconZ = icon.Entity.Pos.Z;
+                            Vector2 position;
+
+                            if (largeMap)
+                            {
+                                position = screentCenterCache + MapIcon.DeltaInWorldToMinimapDelta(
+                                               icon.GridPosition() - playerPos, diag, scale, (iconZ - posZ) / (9f / mapWindowLargeMapZoom));
+                            }
+                            else
+                            {
+                                position = screentCenterCache +
+                                           MapIcon.DeltaInWorldToMinimapDelta(icon.GridPosition() - playerPos, diag, 240f, (iconZ - posZ) / 20);
+                            }
+
+                            HudTexture iconValueMainTexture;
+                            iconValueMainTexture = icon.MainTexture;
+                            var size = iconValueMainTexture.Size;
+                            var halfSize = size / 2f;
+                            icon.DrawRect = new RectangleF(position.X - halfSize, position.Y - halfSize, size, size);
+                            Graphics.DrawImage(iconValueMainTexture.FileName, icon.DrawRect, iconValueMainTexture.UV, iconValueMainTexture.Color);
+
+                            if (icon.Hidden())
+                            {
+                                var s = icon.DrawRect.Width * 0.5f;
+                                icon.DrawRect.Inflate(-s, -s);
+
+                                Graphics.DrawImage(icon.MainTexture.FileName, icon.DrawRect,
+                                    SpriteHelper.GetUV(MapIconsIndex.LootFilterSmallCyanCircle), Color.White);
+
+                                icon.DrawRect.Inflate(s, s);
+                            }
+
+                            if (!string.IsNullOrEmpty(icon.Text))
+                                Graphics.DrawText(icon.Text, position.Translate(0, Settings.ZForText), FontAlign.Center);
                         }
-                        else
-                        {
-                            position = screentCenterCache +
-                                       MapIcon.DeltaInWorldToMinimapDelta(icon.GridPosition() - playerPos, diag, 240f, (iconZ - posZ) / 20);
-                        }
-
-                        HudTexture iconValueMainTexture;
-                        iconValueMainTexture = icon.MainTexture;
-                        var size = iconValueMainTexture.Size;
-                        var halfSize = size / 2f;
-                        icon.DrawRect = new RectangleF(position.X - halfSize, position.Y - halfSize, size, size);
-                        Graphics.DrawImage(iconValueMainTexture.FileName, icon.DrawRect, iconValueMainTexture.UV, iconValueMainTexture.Color);
-
-                        if (icon.Hidden())
-                        {
-                            var s = icon.DrawRect.Width * 0.5f;
-                            icon.DrawRect.Inflate(-s, -s);
-
-                            Graphics.DrawImage(icon.MainTexture.FileName, icon.DrawRect,
-                                SpriteHelper.GetUV(MapIconsIndex.LootFilterSmallCyanCircle), Color.White);
-
-                            icon.DrawRect.Inflate(s, s);
-                        }
-
-                        if (!string.IsNullOrEmpty(icon.Text))
-                            Graphics.DrawText(icon.Text, position.Translate(0, Settings.ZForText), FontAlign.Center);
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                DebugWindow.LogError($"MinimapIcons.TickLogic: {e.Message}");
             }
         }
     }
