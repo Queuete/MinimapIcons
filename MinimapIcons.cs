@@ -18,20 +18,9 @@ namespace MinimapIcons
 {
     public class MinimapIcons : BaseSettingsPlugin<MapIconsSettings>
     {
-        private const string ALERT_CONFIG = "config\\new_mod_alerts.txt";
         private readonly Dictionary<string, Size2> modIcons = new Dictionary<string, Size2>();
         private CachedValue<float> _diag;
         private CachedValue<RectangleF> _mapRect;
-
-        private List<string> ignoreEntites = new List<string>
-        {
-            "Metadata/Monsters/Frog/FrogGod/SilverPool",
-            "Metadata/MiscellaneousObjects/WorldItem",
-            "Metadata/Pet/Weta/Basic",
-            "Metadata/Monsters/Daemon/SilverPoolChillDaemon",
-            "Metadata/Monsters/Daemon",
-            "Metadata/Monsters/Frog/FrogGod/SilverOrbFromMonsters"
-        };
 
         private IngameUIElements ingameStateIngameUi;
         private float k;
