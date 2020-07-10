@@ -6,6 +6,8 @@ namespace MinimapIcons
 {
     public class MapIconsSettings : ISettings
     {
+        public ToggleNode Enable { get; set; } = new ToggleNode(true);
+
         [Menu("Draw Monster")]
         public ToggleNode DrawMonsters { get; set; } = new ToggleNode(true);
         [Menu("Icons on minimap")]
@@ -21,6 +23,5 @@ namespace MinimapIcons
         public ToggleNode DrawOnlyOnLargeMap { get; set; } = new ToggleNode(true);
         public ToggleNode MultiThreading { get; set; } = new ToggleNode(false);
         public ToggleNode DrawNotValid { get; set; } = new ToggleNode(false);
-        public ToggleNode Enable { get; set; } = new ToggleNode(false);
     }
 }
